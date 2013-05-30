@@ -185,7 +185,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Events\IntranetRestrict.cs" />
+    <Compile Include="Events\IntranetRestrictEventHandler.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Support\IpAddressExtensions.cs" />
     <Compile Include="Support\Settings.cs" />

@@ -14,7 +14,7 @@ using umbraco.NodeFactory;
 
 namespace UmbIntranetRestrict.Events
 {
-    public class IntranetRestrict : IApplicationEventHandler
+    public class IntranetRestrictEventHandler : IApplicationEventHandler
     {
         // Ensure event handler is only registered once.
         private static object registerLock = new object();
@@ -59,7 +59,7 @@ namespace UmbIntranetRestrict.Events
             }
 
             // Load document corresponding with current page.
-            var node = new Node(e.Page.PageID);
+            var node = new Node(e.PageId);
 
             // Determine if page has Intranet restrictions set.
             if (node.HasProperty("umbIntranetRestrict"))
@@ -80,7 +80,7 @@ namespace UmbIntranetRestrict.Events
                     {
                         // Rewrite URL to display unauthorized page.
                         string rewriteUrl = umbraco.library.NiceUrl(Settings.UnauthorizedPageId);
-                        e.Context.RewritePath(rewriteUrl);
+                        e.Context.Response.Redirect(rewriteUrl, true);
                     }
                 }
             }
