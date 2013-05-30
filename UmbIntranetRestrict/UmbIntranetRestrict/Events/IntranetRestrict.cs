@@ -67,8 +67,6 @@ namespace UmbIntranetRestrict.Events
                 // Determine if access should be restricted.
                 bool intranetRestrict = node.GetProperty("umbIntranetRestrict").Value.ToString() == "1" ? true : false;
 
-                //throw new Exception("Output was " + restrictProperty.ToString());
-
                 // Determine if we are to restrict access.
                 if (intranetRestrict)
                 {
