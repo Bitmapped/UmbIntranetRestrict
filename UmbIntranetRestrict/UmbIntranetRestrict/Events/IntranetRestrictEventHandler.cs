@@ -20,6 +20,9 @@ namespace UmbIntranetRestrict.Events
         private static object registerLock = new object();
         private static bool registerRan = false;
 
+        // Store settings.
+        private Settings settings;
+
         public void OnApplicationStarted(UmbracoApplicationBase httpApplicationBase, ApplicationContext applicationContext)
         {
             // Handle locking.
@@ -37,6 +40,12 @@ namespace UmbIntranetRestrict.Events
                     }
                 }
             }
+        }
+
+        public IntranetRestrictEventHandler()
+        {
+            // Load settings from config file.
+            this.settings = new Settings();
         }
 
         #region Unused interface methods
@@ -74,12 +83,12 @@ namespace UmbIntranetRestrict.Events
                     var requestIp = IPAddress.Parse(e.Context.Request.UserHostAddress);
 
                     // Determine if request is in allowed subnet.
-                    bool allowedRequest = requestIp.IsInSameSubnet(Settings.IpAddress, Settings.SubnetMask);
+                    bool allowedRequest = requestIp.IsInSameSubnet(settings.IpAddresses, settings.SubnetMasks);
 
                     if (!allowedRequest)
                     {
                         // Rewrite URL to display unauthorized page.
-                        string rewriteUrl = umbraco.library.NiceUrl(Settings.UnauthorizedPageId);
+                        string rewriteUrl = umbraco.library.NiceUrl(settings.UnauthorizedPageId);
                         e.Context.Response.Redirect(rewriteUrl, true);
                     }
                 }

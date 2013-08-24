@@ -44,12 +44,50 @@ namespace UmbIntranetRestrict.Support
             return new IPAddress(broadcastAddress);
         }
 
-        public static bool IsInSameSubnet(this IPAddress address2, IPAddress address, IPAddress subnetMask)
+        /// <summary>
+        /// Tests is a given Ip address is in the same subnet as a specified subnet/mask.
+        /// </summary>
+        /// <param name="testAddress">Ip address to test.</param>
+        /// <param name="allowedAddress">Allowed IP to check against.</param>
+        /// <param name="subnetMask">Subnet for Allowed IP to check against.</param>
+        /// <returns></returns>
+        public static bool IsInSameSubnet(this IPAddress testAddress, IPAddress allowedAddress, IPAddress subnetMask)
         {
-            IPAddress network1 = address.GetNetworkAddress(subnetMask);
-            IPAddress network2 = address2.GetNetworkAddress(subnetMask);
+            // Check to see if subnet is specified as 0.0.0.0 or 255.255.255.255, which we will use to refer to a single IP address.
+            if ((subnetMask.ToString() == "0.0.0.0") || (subnetMask.ToString() == "255.255.255.255"))
+            {
+                // See if addresses match.
+                return testAddress.Equals(allowedAddress);
+            }
+
+            IPAddress network1 = allowedAddress.GetNetworkAddress(subnetMask);
+            IPAddress network2 = testAddress.GetNetworkAddress(subnetMask);
 
             return network1.Equals(network2);
+        }
+
+        /// <summary>
+        /// Tests is a given Ip address is in the same subnet as a specified subnet/mask.
+        /// </summary>
+        /// <param name="testAddress">Ip address to test.</param>
+        /// <param name="allowedAddresses">Allowed IPs to check against.</param>
+        /// <param name="subnetMasks">Subnets for allowed IPs to check against.</param>
+        /// <returns></returns>
+        public static bool IsInSameSubnet(this IPAddress testAddress, List<IPAddress> allowedAddresses, List<IPAddress> subnetMasks)
+        {
+            // Loop to process each IP/subnet.
+            for (int ipCount = 0; ipCount < allowedAddresses.Count; ipCount++)
+            {
+                // Test to see if this subnet matches.
+                if (testAddress.IsInSameSubnet(allowedAddresses[ipCount], subnetMasks[ipCount]))
+                {
+                    // Address is allowed.
+                    return true;
+                }
+            }
+
+            // We've exhausted all IP addresses and nothing matches.
+            return false;
         }
     }
 }
