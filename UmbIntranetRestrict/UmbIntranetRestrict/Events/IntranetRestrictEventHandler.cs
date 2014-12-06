@@ -1,95 +1,85 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Umbraco.Core;
-using umbraco;
-using umbraco.cms.businesslogic.web;
-using umbraco.BusinessLogic;
-using umbraco.cms.businesslogic.template;
-using UmbIntranetRestrict.Support;
 using System.Net;
-using umbraco.NodeFactory;
+using System.Web;
+using UmbIntranetRestrict.Support;
+using Umbraco.Core;
+using Umbraco.Web.Routing;
 
 namespace UmbIntranetRestrict.Events
 {
-    public class IntranetRestrictEventHandler : IApplicationEventHandler
+    public class IntranetRestrictEventHandler : ApplicationEventHandler
     {
-        // Ensure event handler is only registered once.
-        private static object registerLock = new object();
-        private static bool registerRan = false;
+        /// <summary>
+        /// Configuration settings.
+        /// </summary>
+        private readonly Settings settings;
 
-        // Store settings.
-        private Settings settings;
-
-        public void OnApplicationStarted(UmbracoApplicationBase httpApplicationBase, ApplicationContext applicationContext)
-        {
-            // Handle locking.
-            if (!registerRan)
-            {
-                lock (registerLock)
-                {
-                    if (!registerRan)
-                    {
-                        // Register event.
-                        UmbracoDefault.AfterRequestInit += new UmbracoDefault.RequestInitEventHandler(this.RestrictIntranet);
-
-                        // Record that registration happened.
-                        registerRan = true;
-                    }
-                }
-            }
-        }
-
+        /// <summary>
+        /// Constructor to load settings.
+        /// </summary>
         public IntranetRestrictEventHandler()
         {
             // Load settings from config file.
             this.settings = new Settings();
         }
 
-        #region Unused interface methods
-        public void OnApplicationStarting(UmbracoApplicationBase httpApplicationBase, ApplicationContext applicationContext) { }
-        public void OnApplicationInitialized(UmbracoApplicationBase httpApplicationBase, ApplicationContext applicationContext) { }
-        #endregion
+        /// <summary>
+        /// Register event handler on start.
+        /// </summary>
+        /// <param name="httpApplicationBase">Umbraco application.</param>
+        /// <param name="applicationContext">Application context.</param>
+        protected override void ApplicationStarted(UmbracoApplicationBase umbracoApplication, ApplicationContext applicationContext)
+        {
+            PublishedContentRequest.Prepared += PublishedContentRequest_Prepared;
+        }
 
         /// <summary>
-        /// Redirect user to restricted access page if not from valid IP.
+        /// Event handler to redirect traffic from unauthorized IPs.
         /// </summary>
         /// <param name="sender">Sender object</param>
-        /// <param name="e">Event properties</param>
-        private void RestrictIntranet(object sender, RequestInitEventArgs e)
+        /// <param name="e">Event args</param>
+        private void PublishedContentRequest_Prepared(object sender, EventArgs e)
         {
-            // Ensure there is a page to load.
-            if (e.Page == null)
+            // Get request.
+            PublishedContentRequest request = sender as PublishedContentRequest;
+            HttpContext context = HttpContext.Current;
+
+            // Ensure request is valid and page exists.  Otherwise, return without doing anything.
+            if ((request == null) || (request.Is404))
             {
-                // No valid page.  Do nothing.
                 return;
             }
 
-            // Load document corresponding with current page.
-            var node = new Node(e.PageId);
-
             // Determine if page has Intranet restrictions set.
-            if (node.HasProperty("umbIntranetRestrict"))
+            if (request.PublishedContent.GetProperty("umbIntranetRestrict") != null)
             {
                 // Determine if access should be restricted.
-                bool intranetRestrict = node.GetProperty("umbIntranetRestrict").Value.ToString() == "1" ? true : false;
+                bool intranetRestrict = (bool)request.PublishedContent.GetProperty("umbIntranetRestrict").Value;
 
                 // Determine if we are to restrict access.
                 if (intranetRestrict)
                 {
                     // Get Ip addresses of current request.
-                    var requestIp = IPAddress.Parse(e.Context.Request.UserHostAddress);
+                    var requestIp = IPAddress.Parse(context.Request.UserHostAddress);
 
                     // Determine if request is in allowed subnet.
                     bool allowedRequest = requestIp.IsInSameSubnet(settings.IpAddresses, settings.SubnetMasks);
-
                     if (!allowedRequest)
                     {
-                        // Rewrite URL to display unauthorized page.
-                        string rewriteUrl = umbraco.library.NiceUrl(settings.UnauthorizedPageId);
-                        e.Context.Response.Redirect(rewriteUrl, true);
+                        // Get page to display.
+                        var umbracoHelper = new Umbraco.Web.UmbracoHelper(Umbraco.Web.UmbracoContext.Current);
+                        var unauthorizedContent = umbracoHelper.TypedContent(settings.UnauthorizedPageId);
+
+                        // Get template for page to display.
+                        var fileService = ApplicationContext.Current.Services.FileService;
+                        var unauthorizedTemplate = fileService.GetTemplate(unauthorizedContent.TemplateId);
+
+                        // Change published content to unauthorized content page.  Set template.
+                        request.PublishedContent = unauthorizedContent;
+                        request.SetTemplate(unauthorizedTemplate);
+
+                        // Set HTTP 403 Unauthorized status code.
+                        request.SetResponseStatus(403, "Unauthorized");
                     }
                 }
             }
