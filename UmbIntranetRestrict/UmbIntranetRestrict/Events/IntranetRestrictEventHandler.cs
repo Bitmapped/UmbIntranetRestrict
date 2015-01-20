@@ -3,6 +3,8 @@ using System.Net;
 using System.Web;
 using UmbIntranetRestrict.Support;
 using Umbraco.Core;
+using Umbraco.Core.Configuration;
+using Umbraco.Core.Logging;
 using Umbraco.Web.Routing;
 
 namespace UmbIntranetRestrict.Events
@@ -44,9 +46,18 @@ namespace UmbIntranetRestrict.Events
             PublishedContentRequest request = sender as PublishedContentRequest;
             HttpContext context = HttpContext.Current;
 
-            // Ensure request is valid and page exists.  Otherwise, return without doing anything.
-            if ((request == null) || (request.Is404))
+
+            // If the response is invalid, the page doesn't exist, or will be changed already, don't do anything more.
+            if ((request == null) || (request.Is404) || (request.IsRedirect) || (request.ResponseStatusCode > 0))
             {
+                // Log for debugging.
+                LogHelper.Debug<IntranetRestrictEventHandler>("Stopping IntranetRestrict for requested URL {0} because request was null ({1}), was 404 ({2}), was a redirect ({3}), or status code ({4}) was already set.",
+                    () => context.Request.Url.AbsolutePath,
+                    () => (request == null),
+                    () => (request.Is404),
+                    () => (request.IsRedirect),
+                    () => request.ResponseStatusCode);
+
                 return;
             }
 
@@ -78,8 +89,26 @@ namespace UmbIntranetRestrict.Events
                         request.PublishedContent = unauthorizedContent;
                         request.SetTemplate(unauthorizedTemplate);
 
-                        // Set HTTP 403 Unauthorized status code.
+                        // Set HTTP 403 Unauthorized status code for Umbraco. Umbraco doesn't handle substatus codes, so use generic 403.
                         request.SetResponseStatus(403, "Unauthorized");
+
+                        // Also set response status code directly for IIS to ensure 403.6 is used to trigger error pages.
+                        // Include in try-catch block in case there are problems setting depending on IIS version.
+                        try
+                        {
+                            // Try skipping custom IIS errors if desired.
+                            context.Response.TrySkipIisCustomErrors = UmbracoConfig.For.UmbracoSettings().WebRouting.TrySkipIisCustomErrors;
+
+                            // Set status and substatus codes.
+                            context.Response.StatusCode = 403;
+                            context.Response.SubStatusCode = 6;
+                        }
+                        catch { }
+
+                        // Log for debugging.
+                        LogHelper.Debug<IntranetRestrictEventHandler>("Attempt to access {0} from {1} was unauthorized.",
+                            () => context.Request.Url.AbsolutePath,
+                            () => requestIp);
                     }
                 }
             }
