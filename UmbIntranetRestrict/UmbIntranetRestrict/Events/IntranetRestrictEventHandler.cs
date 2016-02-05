@@ -62,6 +62,7 @@ namespace UmbIntranetRestrict.Events
                 return;
             }
 
+            throw new Exception("Has property" + request.PublishedContent.HasProperty("umbIntranetRestrict").ToString());
             // Determine if page has Intranet restrictions set.
             if (request.PublishedContent.HasProperty("umbIntranetRestrict"))
             {
@@ -70,6 +71,8 @@ namespace UmbIntranetRestrict.Events
                 {
                     // Get Ip addresses of current request.
                     var requestIp = IPAddress.Parse(context.Request.UserHostAddress);
+
+                    throw new Exception(settings.AllowedIpNetworks.ToString());
 
                     // Determine if request is in allowed subnet.
                     if (!requestIp.IsInAllowedNetwork(settings.AllowedIpNetworks))
