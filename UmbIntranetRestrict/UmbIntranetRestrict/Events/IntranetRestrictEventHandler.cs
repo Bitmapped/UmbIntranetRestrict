@@ -5,6 +5,7 @@ using UmbIntranetRestrict.Support;
 using Umbraco.Core;
 using Umbraco.Core.Configuration;
 using Umbraco.Core.Logging;
+using Umbraco.Web;
 using Umbraco.Web.Routing;
 
 namespace UmbIntranetRestrict.Events
@@ -43,17 +44,17 @@ namespace UmbIntranetRestrict.Events
         private void PublishedContentRequest_Prepared(object sender, EventArgs e)
         {
             // Get request.
-            PublishedContentRequest request = sender as PublishedContentRequest;
-            HttpContext context = HttpContext.Current;
-
+            var request = sender as PublishedContentRequest;
+            var context = HttpContext.Current;
 
             // If the response is invalid, the page doesn't exist, or will be changed already, don't do anything more.
-            if ((request == null) || (request.Is404) || (request.IsRedirect) || (request.ResponseStatusCode > 0))
+            if ((request == null) || (!request.HasPublishedContent) || (request.Is404) || (request.IsRedirect) || (request.ResponseStatusCode > 0))
             {
                 // Log for debugging.
-                LogHelper.Debug<IntranetRestrictEventHandler>("Stopping IntranetRestrict for requested URL {0} because request was null ({1}), was 404 ({2}), was a redirect ({3}), or status code ({4}) was already set.",
+                LogHelper.Debug<IntranetRestrictEventHandler>("Stopping IntranetRestrict for requested URL {0} because request was null ({1}), there was no published content ({2}), was 404 ({3}), was a redirect ({4}), or status code ({5}) was already set.",
                     () => context.Request.Url.AbsolutePath,
                     () => (request == null),
+                    () => (!request.HasPublishedContent),
                     () => (request.Is404),
                     () => (request.IsRedirect),
                     () => request.ResponseStatusCode);
@@ -62,23 +63,19 @@ namespace UmbIntranetRestrict.Events
             }
 
             // Determine if page has Intranet restrictions set.
-            if (request.PublishedContent.GetProperty("umbIntranetRestrict") != null)
+            if (request.PublishedContent.HasProperty("umbIntranetRestrict"))
             {
-                // Determine if access should be restricted.
-                bool intranetRestrict = (bool)request.PublishedContent.GetProperty("umbIntranetRestrict").Value;
-
                 // Determine if we are to restrict access.
-                if (intranetRestrict)
+                if (request.PublishedContent.GetPropertyValue<bool>("umbIntranetRestrict"))
                 {
                     // Get Ip addresses of current request.
                     var requestIp = IPAddress.Parse(context.Request.UserHostAddress);
 
                     // Determine if request is in allowed subnet.
-                    bool allowedRequest = requestIp.IsInSameSubnet(settings.IpAddresses, settings.SubnetMasks);
-                    if (!allowedRequest)
+                    if (!requestIp.IsInAllowedNetwork(settings.AllowedIpNetworks))
                     {
                         // Get page to display.
-                        var umbracoHelper = new Umbraco.Web.UmbracoHelper(Umbraco.Web.UmbracoContext.Current);
+                        var umbracoHelper = new UmbracoHelper(UmbracoContext.Current);
                         var unauthorizedContent = umbracoHelper.TypedContent(settings.UnauthorizedPageId);
 
                         // Get template for page to display.

@@ -14,6 +14,7 @@ namespace UmbIntranetRestrict.Support
         // Define constants.
         private const string AppKey_IpAddress = "IntranetRestrict:IpAddress";
         private const string AppKey_SubnetMask = "IntranetRestrict:SubnetMask";
+        private const string AppKey_IPNetwork = "IntranetRestrict:IpNetwork";
         private const string AppKey_UnauthorizedPageId = "IntranetRestrict:UnauthorizedPageId";
 
         /// <summary>
@@ -22,27 +23,15 @@ namespace UmbIntranetRestrict.Support
         public Settings()
         {
             // Load values from config files.
-            this.IpAddresses = this.ConfigLoadIpAddresses(AppKey_IpAddress);
-            this.SubnetMasks = this.ConfigLoadIpAddresses(AppKey_SubnetMask);
+            this.AllowedIpNetworks = this.ConfigLoadIpNetworks();
             this.UnauthorizedPageId = this.ConfigLoadUnauthorizedPageId();
-
-            // Check to ensure the same number of Ip addresses and subnet masks are specified.
-            if (this.IpAddresses.Count != this.SubnetMasks.Count)
-            {
-                throw new ConfigurationErrorsException("The same number of IP addresses and subnet masks must be specified.");
-            }
         }
 
         /// <summary>
-        /// Allowed IP addresses.
+        /// Allowed IP networks.
         /// </summary>
-        public List<IPAddress> IpAddresses { get; private set; }
-
-        /// <summary>
-        /// Allowed subnet masks.
-        /// </summary>
-        public List<IPAddress> SubnetMasks { get; private set; }
-
+        public IEnumerable<IPNetwork> AllowedIpNetworks { get; private set; }
+        
         /// <summary>
         /// PageId for redirecting unauthorized users.
         /// </summary>
@@ -51,24 +40,21 @@ namespace UmbIntranetRestrict.Support
         /// <summary>
         /// Access IpAddress specified for IntranetRestrict.
         /// </summary>
-        private List<IPAddress> ConfigLoadIpAddresses(string key)
+        private List<IPAddress> ConfigLoadAddresses(string key)
         {
             try
             {
                 // Split IP address into multiple parts.
-                var strIpAddresses = WebConfigurationManager.AppSettings[key].Split(',').Select(x => x.Trim());
-
-                // Process each string.
-                var ipAddresses = new List<IPAddress>();
-                foreach (var strIpAddress in strIpAddresses)
-                {
-                    ipAddresses.Add(IPAddress.Parse(strIpAddress));
-                }
+                var ipAddresses = WebConfigurationManager.AppSettings[key]
+                    .Split(',')
+                    .Select(x => x.Trim())
+                    .Select(x => IPAddress.Parse(x))
+                    .ToList();
 
                 // Throw exception if no Ip addresses exist in set.
                 if (!ipAddresses.Any())
                 {
-                    throw new ConfigurationErrorsException("No Ip addresses were specified.");
+                    throw new ConfigurationErrorsException("No addresses were specified in " + key + ".");
                 }
 
                 return ipAddresses;
@@ -76,8 +62,54 @@ namespace UmbIntranetRestrict.Support
             catch
             {
                 throw new ConfigurationErrorsException("Value for " + key + " not correctly specified.");
-
             }
+        }
+
+        /// <summary>
+        /// Loads IP networks based on provided IP addresses and IP networks.
+        /// </summary>
+        /// <returns></returns>
+        private IEnumerable<IPNetwork> ConfigLoadIpNetworks()
+        {
+            // Store Ip networks.
+            var ipNetworks = new List<IPNetwork>();
+
+            // Load IP addresses and subnets.
+            var ipAddresses = ConfigLoadAddresses(AppKey_IpAddress);
+            var subnetMasks = ConfigLoadAddresses(AppKey_SubnetMask);
+
+            // Check to ensure the same number of Ip addresses and subnet masks are specified.
+            if (ipAddresses.Count() != subnetMasks.Count())
+            {
+                throw new ArgumentException("The same number of IP addresses and subnet masks must be specified.");
+            }
+
+            // Generate network for each IP/subnet pair.            
+            for (var i = 0; i < ipAddresses.Count(); i++)
+            {
+                // For compatibility purposes, treat subnet masks of 0.0.0.0 as being 255.255.255.255;
+                if (subnetMasks[i].ToString() == "0.0.0.0")
+                {
+                    subnetMasks[i] = IPAddress.Parse("255.255.255.255");
+                }
+
+                ipNetworks.Add(IPNetwork.Parse(ipAddresses[i], subnetMasks[i]));
+            }
+
+            // Load specified networks.
+            try
+            {
+                ipNetworks.AddRange(WebConfigurationManager.AppSettings[AppKey_IPNetwork]
+                                    .Split(',')
+                                    .Select(x => x.Trim())
+                                    .Select(x => IPNetwork.Parse(x)));
+            }
+            catch
+            {
+                throw new ConfigurationErrorsException("Value for " + AppKey_IPNetwork + " not correctly specified.");
+            }
+
+            return ipNetworks;
         }
 
         /// <summary>
