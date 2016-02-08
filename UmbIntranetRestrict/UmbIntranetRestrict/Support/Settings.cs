@@ -42,6 +42,12 @@ namespace UmbIntranetRestrict.Support
         /// </summary>
         private List<IPAddress> ConfigLoadAddresses(string key)
         {
+            // Return empty list if there are no values.
+            if (WebConfigurationManager.AppSettings[key] == null)
+            {
+                return new List<IPAddress>();
+            }
+
             try
             {
                 // Split IP address into multiple parts.
@@ -50,12 +56,6 @@ namespace UmbIntranetRestrict.Support
                     .Select(x => x.Trim())
                     .Select(x => IPAddress.Parse(x))
                     .ToList();
-
-                // Throw exception if no Ip addresses exist in set.
-                if (!ipAddresses.Any())
-                {
-                    throw new ConfigurationErrorsException("No addresses were specified in " + key + ".");
-                }
 
                 return ipAddresses;
             }
@@ -97,16 +97,25 @@ namespace UmbIntranetRestrict.Support
             }
 
             // Load specified networks.
-            try
+            if (WebConfigurationManager.AppSettings[AppKey_IPNetwork] != null)
             {
-                ipNetworks.AddRange(WebConfigurationManager.AppSettings[AppKey_IPNetwork]
-                                    .Split(',')
-                                    .Select(x => x.Trim())
-                                    .Select(x => IPNetwork.Parse(x)));
+                try
+                {
+                    ipNetworks.AddRange(WebConfigurationManager.AppSettings[AppKey_IPNetwork]
+                                        .Split(',')
+                                        .Select(x => x.Trim())
+                                        .Select(x => IPNetwork.Parse(x)));
+                }
+                catch
+                {
+                    throw new ConfigurationErrorsException("Value for " + AppKey_IPNetwork + " not correctly specified.");
+                }
             }
-            catch
+
+            // Throw exception if no Ip addresses exist in set.
+            if (!ipNetworks.Any())
             {
-                throw new ConfigurationErrorsException("Value for " + AppKey_IPNetwork + " not correctly specified.");
+                throw new ConfigurationErrorsException("No addresses were specified for UmbIntranetRestrict.");
             }
 
             return ipNetworks;

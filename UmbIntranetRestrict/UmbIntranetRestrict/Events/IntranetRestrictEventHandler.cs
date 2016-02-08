@@ -62,17 +62,15 @@ namespace UmbIntranetRestrict.Events
                 return;
             }
 
-            throw new Exception("Has property" + request.PublishedContent.HasProperty("umbIntranetRestrict").ToString());
             // Determine if page has Intranet restrictions set.
             if (request.PublishedContent.HasProperty("umbIntranetRestrict"))
             {
+                var restrict = request.PublishedContent.GetPropertyValue<bool>("umbIntranetRestrict");
                 // Determine if we are to restrict access.
-                if (request.PublishedContent.GetPropertyValue<bool>("umbIntranetRestrict"))
+                if (restrict)
                 {
                     // Get Ip addresses of current request.
                     var requestIp = IPAddress.Parse(context.Request.UserHostAddress);
-
-                    throw new Exception(settings.AllowedIpNetworks.ToString());
 
                     // Determine if request is in allowed subnet.
                     if (!requestIp.IsInAllowedNetwork(settings.AllowedIpNetworks))
@@ -86,7 +84,7 @@ namespace UmbIntranetRestrict.Events
                         var unauthorizedTemplate = fileService.GetTemplate(unauthorizedContent.TemplateId);
 
                         // Change published content to unauthorized content page.  Set template.
-                        request.PublishedContent = unauthorizedContent;
+                        request.SetInternalRedirectPublishedContent(unauthorizedContent);
                         request.SetTemplate(unauthorizedTemplate);
 
                         // Set HTTP 403 Unauthorized status code for Umbraco. Umbraco doesn't handle substatus codes, so use generic 403.
