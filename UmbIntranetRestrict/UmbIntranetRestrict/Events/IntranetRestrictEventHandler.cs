@@ -66,6 +66,7 @@ namespace UmbIntranetRestrict.Events
             if (request.PublishedContent.HasProperty("umbIntranetRestrict"))
             {
                 var restrict = request.PublishedContent.GetPropertyValue<bool>("umbIntranetRestrict");
+
                 // Determine if we are to restrict access.
                 if (restrict)
                 {
@@ -90,18 +91,21 @@ namespace UmbIntranetRestrict.Events
                         // Set HTTP 403 Unauthorized status code for Umbraco. Umbraco doesn't handle substatus codes, so use generic 403.
                         request.SetResponseStatus(403, "Unauthorized");
 
-                        // Also set response status code directly for IIS to ensure 403.6 is used to trigger error pages.
                         // Include in try-catch block in case there are problems setting depending on IIS version.
                         try
                         {
-                            // Try skipping custom IIS errors if desired.
-                            context.Response.TrySkipIisCustomErrors = UmbracoConfig.For.UmbracoSettings().WebRouting.TrySkipIisCustomErrors;
-
-                            // Set status and substatus codes.
+                            // Set status code and substatus code directly for IIS. While Umbraco sets status code itself, if we don't set status directly ourselves here substatus gets ignored.
                             context.Response.StatusCode = 403;
                             context.Response.SubStatusCode = 6;
+
+                            // Try skipping custom IIS errors if desired.
+                            context.Response.TrySkipIisCustomErrors = UmbracoConfig.For.UmbracoSettings().WebRouting.TrySkipIisCustomErrors;
                         }
-                        catch { }
+                        catch (Exception ex)
+                        {
+                            // Error trying to set values.
+                            LogHelper.Debug<IntranetRestrictEventHandler>(ex.ToString());
+                        }
 
                         // Log for debugging.
                         LogHelper.Debug<IntranetRestrictEventHandler>("Attempt to access {0} from {1} was unauthorized.",

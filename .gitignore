@@ -6,3 +6,6 @@
 /UmbIntranetRestrict/UmbracoTest/App_Data/cache
 /UmbIntranetRestrict/UmbracoTest/App_Data/packages
 /UmbIntranetRestrict/UmbracoTest/App_Data/Logs
+/UmbIntranetRestrict/UmbIntranetRestrict/bin
+/UmbIntranetRestrict/UmbIntranetRestrict/obj/NuGet
+/UmbIntranetRestrict/UmbIntranetRestrict/obj/Release
