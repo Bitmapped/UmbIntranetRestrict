@@ -15,7 +15,7 @@ This project is available on [NuGet](https://www.nuget.org/packages/UmbIntranetR
 ## Usage instructions
 ### Getting started
 1. Add **UmbIntranetRestrict.dll** as a reference in your project or place it in the **\bin** folder.
-2. Add the dependency [**IPNetwork2**](https://github.com/lduchosal/ipnetwork) as a reference in your project or place its DLLs in the **\bin** folder.
+2. Add the dependency [**IPNetwork2**](https://github.com/lduchosal/ipnetwork) as a reference in your project or place its DLL in the **\bin** folder.
 3. Insert the following `<appSettings>` keys in **web.config**:
   - `IntranetRestrict:IpAddress` - comma-separated list of IP addresses (IPv4 or IPv6) in range to allow
   - `IntranetRestrict:SubnetMask` - comma-separate list of subnet masks (IPv4 or IPv6) to use with specified IP address
