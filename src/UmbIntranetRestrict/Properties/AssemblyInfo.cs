@@ -6,7 +6,7 @@ using System.Runtime.InteropServices;
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
 [assembly: AssemblyTitle("UmbHttpStatusCode")]
-[assembly: AssemblyDescription("")]
+[assembly: AssemblyDescription("Event handler plugin for Umbraco that allows users to specify as page properties HTTP Status Codes to be returned.")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("Brian M. Powell")]
 [assembly: AssemblyProduct("UmbHttpStatusCode")]
