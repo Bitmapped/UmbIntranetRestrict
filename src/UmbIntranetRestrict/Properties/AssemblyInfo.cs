@@ -5,7 +5,7 @@ using System.Runtime.InteropServices;
 // General Information about an assembly is controlled through the following 
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("UmbHttpStatusCode")]
+[assembly: AssemblyTitle("UmbIntranetRestrict")]
 [assembly: AssemblyDescription("Umbraco package to allow restricting access to Intranet pages.")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("Brian M. Powell")]
