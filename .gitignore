@@ -9,3 +9,12 @@
 /UmbIntranetRestrict/UmbIntranetRestrict/bin
 /UmbIntranetRestrict/UmbIntranetRestrict/obj/NuGet
 /UmbIntranetRestrict/UmbIntranetRestrict/obj/Release
+/src/packages
+/src/UmbIntranetRestrict/bin
+/src/UmbIntranetRestrict/obj
+/src/UmbracoTest/App_Data/cache
+/src/UmbracoTest/App_Data/Logs
+/src/UmbracoTest/App_Data/packages/installed
+/src/UmbracoTest/App_Data/TEMP
+/src/UmbracoTest/bin
+/src/UmbracoTest/obj
