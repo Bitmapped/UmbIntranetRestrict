@@ -63,55 +63,49 @@ namespace UmbIntranetRestrict.Events
             }
 
             // Determine if page has Intranet restrictions set.
-            if (request.PublishedContent.HasProperty("umbIntranetRestrict"))
+            if (request.PublishedContent.GetPropertyValue<bool>("umbIntranetRestrict", false))
             {
-                var restrict = request.PublishedContent.GetPropertyValue<bool>("umbIntranetRestrict");
+                // Get Ip addresses of current request.
+                var requestIp = IPAddress.Parse(context.Request.UserHostAddress);
 
-                // Determine if we are to restrict access.
-                if (restrict)
+                // Determine if request is in allowed subnet.
+                if (!requestIp.IsInAllowedNetwork(settings.AllowedIpNetworks))
                 {
-                    // Get Ip addresses of current request.
-                    var requestIp = IPAddress.Parse(context.Request.UserHostAddress);
+                    // Get page to display.
+                    var umbracoHelper = new UmbracoHelper(UmbracoContext.Current);
+                    var unauthorizedContent = umbracoHelper.TypedContent(settings.UnauthorizedPageId);
 
-                    // Determine if request is in allowed subnet.
-                    if (!requestIp.IsInAllowedNetwork(settings.AllowedIpNetworks))
+                    // Get template for page to display.
+                    var fileService = ApplicationContext.Current.Services.FileService;
+                    var unauthorizedTemplate = fileService.GetTemplate(unauthorizedContent.TemplateId);
+
+                    // Change published content to unauthorized content page.  Set template.
+                    request.SetInternalRedirectPublishedContent(unauthorizedContent);
+                    request.SetTemplate(unauthorizedTemplate);
+
+                    // Set HTTP 403 Unauthorized status code for Umbraco. Umbraco doesn't handle substatus codes, so use generic 403.
+                    request.SetResponseStatus(403, "Unauthorized");
+
+                    // Include in try-catch block in case there are problems setting depending on IIS version.
+                    try
                     {
-                        // Get page to display.
-                        var umbracoHelper = new UmbracoHelper(UmbracoContext.Current);
-                        var unauthorizedContent = umbracoHelper.TypedContent(settings.UnauthorizedPageId);
+                        // Set status code and substatus code directly for IIS. While Umbraco sets status code itself, if we don't set status directly ourselves here substatus gets ignored.
+                        context.Response.StatusCode = 403;
+                        context.Response.SubStatusCode = 6;
 
-                        // Get template for page to display.
-                        var fileService = ApplicationContext.Current.Services.FileService;
-                        var unauthorizedTemplate = fileService.GetTemplate(unauthorizedContent.TemplateId);
-
-                        // Change published content to unauthorized content page.  Set template.
-                        request.SetInternalRedirectPublishedContent(unauthorizedContent);
-                        request.SetTemplate(unauthorizedTemplate);
-
-                        // Set HTTP 403 Unauthorized status code for Umbraco. Umbraco doesn't handle substatus codes, so use generic 403.
-                        request.SetResponseStatus(403, "Unauthorized");
-
-                        // Include in try-catch block in case there are problems setting depending on IIS version.
-                        try
-                        {
-                            // Set status code and substatus code directly for IIS. While Umbraco sets status code itself, if we don't set status directly ourselves here substatus gets ignored.
-                            context.Response.StatusCode = 403;
-                            context.Response.SubStatusCode = 6;
-
-                            // Try skipping custom IIS errors if desired.
-                            context.Response.TrySkipIisCustomErrors = UmbracoConfig.For.UmbracoSettings().WebRouting.TrySkipIisCustomErrors;
-                        }
-                        catch (Exception ex)
-                        {
-                            // Error trying to set values.
-                            LogHelper.Debug<IntranetRestrictEventHandler>(ex.ToString());
-                        }
-
-                        // Log for debugging.
-                        LogHelper.Debug<IntranetRestrictEventHandler>("Attempt to access {0} from {1} was unauthorized.",
-                            () => context.Request.Url.AbsolutePath,
-                            () => requestIp);
+                        // Try skipping custom IIS errors if desired.
+                        context.Response.TrySkipIisCustomErrors = UmbracoConfig.For.UmbracoSettings().WebRouting.TrySkipIisCustomErrors;
                     }
+                    catch (Exception ex)
+                    {
+                        // Error trying to set values.
+                        LogHelper.Debug<IntranetRestrictEventHandler>(ex.ToString());
+                    }
+
+                    // Log for debugging.
+                    LogHelper.Debug<IntranetRestrictEventHandler>("Attempt to access {0} from {1} was unauthorized.",
+                        () => context.Request.Url.AbsolutePath,
+                        () => requestIp);
                 }
             }
         }
