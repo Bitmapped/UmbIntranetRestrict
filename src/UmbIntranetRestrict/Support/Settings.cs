@@ -11,11 +11,17 @@ namespace UmbIntranetRestrict.Support
 {
     public class Settings
     {
+        #region Fields
+
         // Define constants.
         private const string AppKey_IpAddress = "IntranetRestrict:IpAddress";
-        private const string AppKey_SubnetMask = "IntranetRestrict:SubnetMask";
         private const string AppKey_IPNetwork = "IntranetRestrict:IpNetwork";
+        private const string AppKey_SubnetMask = "IntranetRestrict:SubnetMask";
         private const string AppKey_UnauthorizedPageId = "IntranetRestrict:UnauthorizedPageId";
+
+        #endregion Fields
+
+        #region Constructors
 
         /// <summary>
         /// Load settings from configuration file.
@@ -24,8 +30,12 @@ namespace UmbIntranetRestrict.Support
         {
             // Load values from config files.
             this.AllowedIpNetworks = this.ConfigLoadIpNetworks();
-            this.UnauthorizedPageId = this.ConfigLoadUnauthorizedPageId();
+            this.UnauthorizedPageId = this.ConfigLoadInt(AppKey_UnauthorizedPageId);
         }
+
+        #endregion Constructors
+
+        #region Properties
 
         /// <summary>
         /// Allowed IP networks.
@@ -36,6 +46,10 @@ namespace UmbIntranetRestrict.Support
         /// PageId for redirecting unauthorized users.
         /// </summary>
         public int UnauthorizedPageId { get; private set; }
+
+        #endregion Properties
+
+        #region Methods
 
         /// <summary>
         /// Access IpAddress specified for IntranetRestrict.
@@ -61,7 +75,24 @@ namespace UmbIntranetRestrict.Support
             }
             catch
             {
-                throw new ConfigurationErrorsException("Value for " + key + " not correctly specified.");
+                throw new ConfigurationErrorsException(String.Format("Value for {0} not correctly specified.", key));
+            }
+        }
+
+        /// <summary>
+        /// Access unauthorized page ID redirect specified for IntranetRestrict.
+        /// </summary>
+        /// <param name="key">Key to load.</param>
+        /// <returns>Loaded integer.</returns>
+        private int ConfigLoadInt(string key)
+        {
+            try
+            {
+                return Int32.Parse(WebConfigurationManager.AppSettings[key]);
+            }
+            catch
+            {
+                throw new ConfigurationErrorsException(String.Format("Value for {0} not correctly specified.", key));
             }
         }
 
@@ -108,7 +139,7 @@ namespace UmbIntranetRestrict.Support
                 }
                 catch
                 {
-                    throw new ConfigurationErrorsException("Value for " + AppKey_IPNetwork + " not correctly specified.");
+                    throw new ConfigurationErrorsException(String.Format("Value for {0} not correctly specified.", AppKey_IPNetwork));
                 }
             }
 
@@ -121,19 +152,6 @@ namespace UmbIntranetRestrict.Support
             return ipNetworks;
         }
 
-        /// <summary>
-        /// Access unauthorized page ID redirect specified for IntranetRestrict.
-        /// </summary>
-        private int ConfigLoadUnauthorizedPageId()
-        {
-            try
-            {
-                return Int32.Parse(WebConfigurationManager.AppSettings[AppKey_UnauthorizedPageId]);
-            }
-            catch
-            {
-                throw new ConfigurationErrorsException("Value for " + AppKey_UnauthorizedPageId + " not correctly specified.");
-            }
-        }
+        #endregion Methods
     }
 }

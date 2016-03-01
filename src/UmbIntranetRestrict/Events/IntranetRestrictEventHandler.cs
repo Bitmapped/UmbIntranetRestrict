@@ -12,10 +12,16 @@ namespace UmbIntranetRestrict.Events
 {
     public class IntranetRestrictEventHandler : ApplicationEventHandler
     {
+        #region Fields
+
         /// <summary>
         /// Configuration settings.
         /// </summary>
         private readonly Settings settings;
+
+        #endregion Fields
+
+        #region Constructors
 
         /// <summary>
         /// Constructor to load settings.
@@ -25,6 +31,10 @@ namespace UmbIntranetRestrict.Events
             // Load settings from config file.
             this.settings = new Settings();
         }
+
+        #endregion Constructors
+
+        #region Methods
 
         /// <summary>
         /// Register event handler on start.
@@ -109,5 +119,7 @@ namespace UmbIntranetRestrict.Events
                 }
             }
         }
+
+        #endregion Methods
     }
 }
