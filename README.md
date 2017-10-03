@@ -18,8 +18,8 @@ This project is available on [NuGet](https://www.nuget.org/packages/UmbIntranetR
 2. Add the dependency [**IPNetwork2**](https://github.com/lduchosal/ipnetwork) as a reference in your project or place its DLL in the **\bin** folder.
 3. Insert the following `<appSettings>` keys in **web.config**:
   - `IntranetRestrict:IpAddress` - comma-separated list of IP addresses (IPv4 or IPv6) in range to allow
-  - `IntranetRestrict:SubnetMask` - comma-separate list of subnet masks (IPv4 or IPv6) to use with specified IP address
-  - `IntranetRestrict:IpNetwork` - comma separated list of IP networks (IPv4 or IPv6) to allow (e.g., `127.0.0.1/32` to allow just localhost; can be used in place of `IntranetRestrict:IpAddress` and `IntranetRestrict:SubnetMask`
+  - `IntranetRestrict:SubnetMask` - comma-separated list of subnet masks (IPv4 or IPv6) to use with specified IP address
+  - `IntranetRestrict:IpNetwork` - comma-separated list of IP networks (IPv4 or IPv6) to allow (e.g., `127.0.0.1/32` to allow just localhost; can be used in place of `IntranetRestrict:IpAddress` and `IntranetRestrict:SubnetMask`
   - `IntranetRestrict:UnauthorizedPageId` - Umbraco page ID to display for people whose computers are not in allowed range
 4. To restrict access to specific pages, add a true/false-type document property in Umbraco:
   - `umbIntranetRestrict`
